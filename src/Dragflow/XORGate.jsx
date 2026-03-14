@@ -1,11 +1,13 @@
 import { useEffect, useCallback } from 'react';
 import {
+
   Handle,
   useNodeConnections,
   useNodesData,
   Position,
   useReactFlow,
 } from '@xyflow/react';
+import { getInputValue } from './utils';
 
 import nandgate from '../assets/images/xor.png';
 
@@ -20,8 +22,8 @@ export default function XORGate({ id, data }) {
   const r = useNodeConnections({ handleType: 'target', handleId: 'b' });
   const rNodeData = useNodesData(r?.[0]?.source);
 
-  const inputL = lNodeData?.data?.value ?? 0;
-  const inputR = rNodeData?.data?.value ?? 0;
+  const inputL = getInputValue(l, lNodeData);
+  const inputR = getInputValue(r, rNodeData);
   const result = inputL !== inputR;
 
 

@@ -3,11 +3,16 @@ import { invoke } from '@tauri-apps/api/core';
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { Plus, FolderOpen, Trash2, FileText } from 'lucide-react';
+import ConfirmationModal from '../Components/ConfirmationModal';
 
 export default function ProjectsListPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
 
   useEffect(() => {
     const loadProjects = async () => {
@@ -23,17 +28,25 @@ export default function ProjectsListPage() {
     loadProjects();
   }, []);
 
-  const handleDeleteProject = async (projectId, projectName) => {
-    if (confirm(`Are you sure you want to delete "${projectName}"? This action cannot be undone.`)) {
-      try {
-        await invoke('delete_project', { id: projectId });
-        // Refresh the projects list
-        const updatedProjects = await invoke('get_all_projects');
-        setProjects(updatedProjects);
-      } catch (error) {
-        console.error('Error deleting project:', error);
-        alert('Failed to delete project. Please try again.');
-      }
+  const handleDeleteClick = (projectId, projectName) => {
+    setProjectToDelete({ id: projectId, name: projectName });
+    setIsModalOpen(true);
+  };
+
+  const confirmDeleteProject = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      await invoke('delete_project', { id: projectToDelete.id });
+      // Refresh the projects list
+      const updatedProjects = await invoke('get_all_projects');
+      setProjects(updatedProjects);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project. Please try again.');
+    } finally {
+      setIsModalOpen(false);
+      setProjectToDelete(null);
     }
   };
 
@@ -107,15 +120,15 @@ export default function ProjectsListPage() {
                       <FileText className="h-6 w-6 text-blue-600" />
                     </div>
                   </div>
-                  
+
                   <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate group-hover:text-blue-600 transition-colors">
                     {project.project_name}
                   </h3>
-                  
+
                   <p className="text-sm text-gray-500 mb-4">
                     Digital Logic Project
                   </p>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-400">
                       Click to open
@@ -133,7 +146,7 @@ export default function ProjectsListPage() {
                     className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteProject(project.id, project.project_name);
+                      handleDeleteClick(project.id, project.project_name);
                     }}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -145,6 +158,14 @@ export default function ProjectsListPage() {
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={confirmDeleteProject}
+        title="Delete Project"
+        message={projectToDelete ? `Are you sure you want to delete "${projectToDelete.name}"? This action cannot be undone.` : ""}
+      />
     </div>
   );
 }

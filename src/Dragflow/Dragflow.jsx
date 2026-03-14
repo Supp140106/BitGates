@@ -12,6 +12,7 @@ import {
   MiniMap,
   Panel,
 } from '@xyflow/react';
+import ConfirmationModal from '../Components/ConfirmationModal';
 
 import '@xyflow/react/dist/style.css';
 import ORGate from './ORGate';
@@ -26,6 +27,15 @@ import NORGate from './NorGate';
 import NANDGate from './NANDGate';
 import XORGate from './XORGate';
 import XNORGate from './XNORGates';
+import MUX21Gate from './MUX21Gate';
+import MUX41Gate from './MUX41Gate';
+import DEC12Gate from './DEC12Gate';
+import DEC24Gate from './DEC24Gate';
+import SRFlipFlop from './SRFlipFlop';
+import JKFlipFlop from './JKFlipFlop';
+import DFlipFlop from './DFlipFlop';
+import TFlipFlop from './TFlipFlop';
+import ClockNode from './ClockNode';
 import { useParams, useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { load } from '@tauri-apps/plugin-store';
@@ -43,7 +53,16 @@ const nodeTypes = {
   norgate: NORGate,
   nandgate: NANDGate,
   xorgate: XORGate,
-  xnorgate: XNORGate
+  xnorgate: XNORGate,
+  mux21gate: MUX21Gate,
+  mux41gate: MUX41Gate,
+  dec12gate: DEC12Gate,
+  dec24gate: DEC24Gate,
+  srflipflop: SRFlipFlop,
+  jkflipflop: JKFlipFlop,
+  dflipflop: DFlipFlop,
+  tflipflop: TFlipFlop,
+  clocknode: ClockNode
 };
 
 const initialNodes = [
@@ -55,26 +74,25 @@ const initialNodes = [
   },
 ];
 
-async function getProject(id){
-  const result = await invoke('get_project_by_id',{
-    id : id
+async function getProject(id) {
+  const result = await invoke('get_project_by_id', {
+    id: id
   })
   return result
 }
 
 
 
-let id = 0;
-const getId = () => `dndnode_${id++}`;
+const getId = () => crypto.randomUUID();
 
 
 
-const DnDFlow = ({projectId}) => {
+const DnDFlow = ({ projectId }) => {
   const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { screenToFlowPosition } = useReactFlow();
-  const [type] = useDnD();
+  const { screenToFlowPosition, deleteElements } = useReactFlow();
+  const [type, setType] = useDnD();
   const navigate = useNavigate();
 
   // Store state
@@ -90,6 +108,15 @@ const DnDFlow = ({projectId}) => {
   // Autosave timer
   const autosaveTimerRef = useRef(null);
 
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalConfig, setModalConfig] = useState({ title: '', message: '', onConfirm: () => { } });
+
+  const openConfirmation = (title, message, onConfirm) => {
+    setModalConfig({ title, message, onConfirm });
+    setIsModalOpen(true);
+  };
+
   // Initialize store
   useEffect(() => {
     const initStore = async () => {
@@ -98,18 +125,18 @@ const DnDFlow = ({projectId}) => {
           autoSave: false // We'll handle saving manually for better control
         });
         setStore(storeInstance);
-        
+
         // Load existing workflows list
         const savedWorkflows = await storeInstance.get('workflows') || [];
         setWorkflows(savedWorkflows);
-        
+
         // Load the current workflow if it exists
         await loadCurrentWorkflow(storeInstance);
       } catch (error) {
         console.error('Failed to initialize store:', error);
       }
     };
-    
+
     if (projectId) {
       initStore();
     }
@@ -134,7 +161,7 @@ const DnDFlow = ({projectId}) => {
   // Save current workflow to store
   const saveCurrentWorkflow = useCallback(async (currentNodes = nodes, currentEdges = edges, manual = false) => {
     if (!store) return;
-    
+
     setIsSaving(true);
     try {
       const timestamp = new Date().toISOString();
@@ -144,12 +171,12 @@ const DnDFlow = ({projectId}) => {
         timestamp,
         projectId
       };
-      
+
       await store.set('currentWorkflow', workflowData);
       await store.save();
-      
+
       setLastSaved(new Date(timestamp));
-      
+
       if (manual) {
         console.log('Workflow saved manually');
       }
@@ -163,7 +190,7 @@ const DnDFlow = ({projectId}) => {
   // Save named workflow
   const saveNamedWorkflow = useCallback(async (name) => {
     if (!store || !name.trim()) return;
-    
+
     setIsSaving(true);
     try {
       const timestamp = new Date().toISOString();
@@ -174,19 +201,19 @@ const DnDFlow = ({projectId}) => {
         timestamp,
         projectId
       };
-      
+
       const savedWorkflows = await store.get('workflows') || [];
       const existingIndex = savedWorkflows.findIndex(w => w.name === name.trim());
-      
+
       if (existingIndex >= 0) {
         savedWorkflows[existingIndex] = workflowData;
       } else {
         savedWorkflows.push(workflowData);
       }
-      
+
       await store.set('workflows', savedWorkflows);
       await store.save();
-      
+
       setWorkflows(savedWorkflows);
       console.log(`Workflow "${name}" saved successfully`);
     } catch (error) {
@@ -199,11 +226,11 @@ const DnDFlow = ({projectId}) => {
   // Load named workflow
   const loadNamedWorkflow = useCallback(async (workflowName) => {
     if (!store) return;
-    
+
     try {
       const savedWorkflows = await store.get('workflows') || [];
       const workflow = savedWorkflows.find(w => w.name === workflowName);
-      
+
       if (workflow) {
         setNodes(workflow.nodes || initialNodes);
         setEdges(workflow.edges || []);
@@ -223,7 +250,7 @@ const DnDFlow = ({projectId}) => {
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current);
     }
-    
+
     autosaveTimerRef.current = setTimeout(() => {
       saveCurrentWorkflow(nodes, edges, false);
     }, 2000); // Autosave after 2 seconds of inactivity
@@ -237,7 +264,7 @@ const DnDFlow = ({projectId}) => {
       return newHistory;
     });
     setCurrentIndex(prev => prev + 1);
-    
+
     // Schedule autosave
     scheduleAutosave();
   }, [currentIndex, scheduleAutosave]);
@@ -266,12 +293,18 @@ const DnDFlow = ({projectId}) => {
           event.preventDefault();
           saveCurrentWorkflow(nodes, edges, true);
         }
+      } else if (event.key === 'Backspace' || event.key === 'Delete') {
+        const selectedNodes = nodes.filter(n => n.selected);
+        const selectedEdges = edges.filter(e => e.selected);
+        if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+          deleteElements({ nodes: selectedNodes, edges: selectedEdges });
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [history, currentIndex, setNodes, setEdges, saveCurrentWorkflow, nodes, edges]);
+  }, [history, currentIndex, setNodes, setEdges, saveCurrentWorkflow, nodes, edges, deleteElements]);
 
   // Cleanup autosave timer on unmount
   useEffect(() => {
@@ -301,6 +334,8 @@ const DnDFlow = ({projectId}) => {
     });
   }, [nodes, saveState]);
 
+
+
   const onDragOver = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
@@ -310,7 +345,10 @@ const DnDFlow = ({projectId}) => {
     (event) => {
       event.preventDefault();
 
-      if (!type) {
+      const droppedType = type || event.dataTransfer.getData('application/reactflow');
+
+      if (!droppedType) {
+        console.warn('onDrop fired but no type found in context or dataTransfer');
         return;
       }
 
@@ -320,9 +358,9 @@ const DnDFlow = ({projectId}) => {
       });
       const newNode = {
         id: getId(),
-        type,
+        type: droppedType,
         position,
-        data: { label: `${type} node` },
+        data: { value: 0, label: `${droppedType} node` },
       };
 
       setNodes((nds) => {
@@ -330,14 +368,25 @@ const DnDFlow = ({projectId}) => {
         setTimeout(() => saveState(newNodes, edges), 100);
         return newNodes;
       });
+
+      // Reset type after drop if desired, though normally we keep it for the next drag
+      // setType(null); 
     },
-    [screenToFlowPosition, type, edges, saveState],
+    [screenToFlowPosition, type, edges, saveState, setNodes],
   );
 
-  const onDragStart = (event, nodeType) => {
+  const onDragStart = useCallback((event, nodeType) => {
     setType(nodeType);
-    event.dataTransfer.setData('text/plain', nodeType);
+    event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
+  }, [setType]);
+
+  const handleDeleteSelected = () => {
+    const selectedNodes = nodes.filter(n => n.selected);
+    const selectedEdges = edges.filter(e => e.selected);
+    if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+      deleteElements({ nodes: selectedNodes, edges: selectedEdges });
+    }
   };
 
   // Enhanced handlers to save state
@@ -380,7 +429,7 @@ const DnDFlow = ({projectId}) => {
           <Panel position="top-left">
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 min-w-64">
               {/* Header */}
-              
+
 
               {/* Navigation */}
               <div className="mb-4">
@@ -394,16 +443,15 @@ const DnDFlow = ({projectId}) => {
                   Back to Projects
                 </button>
               </div>
-              
+
               {/* Save/Load Section */}
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    className={`flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      isSaving
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
-                    }`}
+                    className={`flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isSaving
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                      }`}
                     onClick={() => saveCurrentWorkflow(nodes, edges, true)}
                     disabled={isSaving}
                   >
@@ -424,24 +472,27 @@ const DnDFlow = ({projectId}) => {
                       </>
                     )}
                   </button>
-                  
+
                   <button
                     className='flex items-center justify-center px-3 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md'
-                    onClick={()=>{
-                      if (confirm('Are you sure you want to clear the workflow? This action cannot be undone.')) {
-                        setEdges([]);
-                        setNodes([]);
-                        // Clear from store as well
-                        if (store) {
-                          store.set('currentWorkflow', {
-                            nodes: [],
-                            edges: [],
-                            timestamp: new Date().toISOString(),
-                            projectId
-                          });
-                          store.save();
+                    onClick={() => {
+                      openConfirmation(
+                        'Clear Workflow',
+                        'Are you sure you want to clear the workflow? This action cannot be undone.',
+                        () => {
+                          setEdges([]);
+                          setNodes([]);
+                          if (store) {
+                            store.set('currentWorkflow', {
+                              nodes: [],
+                              edges: [],
+                              timestamp: new Date().toISOString(),
+                              projectId
+                            });
+                            store.save();
+                          }
                         }
-                      }
+                      );
                     }}
                   >
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -450,8 +501,6 @@ const DnDFlow = ({projectId}) => {
                     Clear
                   </button>
                 </div>
-
-                
               </div>
             </div>
           </Panel>
@@ -459,6 +508,13 @@ const DnDFlow = ({projectId}) => {
         </ReactFlow>
       </div>
       <Sidebar />
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+      />
     </div>
   );
 };
@@ -469,7 +525,7 @@ export default function Dragflow() {
   return (
     <ReactFlowProvider>
       <DnDProvider>
-        <DnDFlow projectId={projectId}/>
+        <DnDFlow projectId={projectId} />
       </DnDProvider>
     </ReactFlowProvider>
   );

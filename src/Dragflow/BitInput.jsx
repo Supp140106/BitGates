@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from "react"; // Import useEffect
-import { Handle, Position, useReactFlow } from '@xyflow/react';
+import {
+ Handle, Position, useReactFlow } from '@xyflow/react';
+import { getInputValue } from './utils';
 
 export default function BitInput({ id, data }) { // Add data prop
   const [isYes, setIsYes] = useState(data?.value !== undefined ? data.value : true); // Initialize from data or default

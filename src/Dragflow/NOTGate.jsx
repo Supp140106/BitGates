@@ -1,11 +1,13 @@
 import { useEffect, useCallback } from 'react';
 import {
+
   Handle,
   useNodeConnections,
   useNodesData,
   Position,
   useReactFlow,
 } from '@xyflow/react';
+import { getInputValue } from './utils';
 
 import notgate from '../assets/images/notgate.png';
 

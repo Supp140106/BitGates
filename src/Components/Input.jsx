@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Clock } from "lucide-react";
 import { useState } from "react";
 import { useDnD } from "../Dragflow/DnDContext";
 
@@ -9,7 +9,13 @@ export default function Input() {
 
   const onDragStart = (event, nodeType) => {
     setType(nodeType);
+    event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = "move";
+
+    const dragImg = event.currentTarget.querySelector('button') || event.currentTarget.querySelector('div');
+    if (dragImg) {
+      event.dataTransfer.setDragImage(dragImg, 20, 20);
+    }
   };
 
   return (
@@ -21,9 +27,8 @@ export default function Input() {
       >
         <span className="text-lg font-semibold tracking-wide">Input</span>
         <ChevronDown
-          className={`w-5 h-5 transform transition-transform duration-300 ${
-            open ? "rotate-180" : "rotate-0"
-          }`}
+          className={`w-5 h-5 transform transition-transform duration-300 ${open ? "rotate-180" : "rotate-0"
+            }`}
         />
       </div>
 
@@ -44,6 +49,18 @@ export default function Input() {
               {value}
             </button>
             <span className="text-sky-700 text-base font-medium">Bit Input</span>
+          </div>
+
+          {/* Clock Node */}
+          <div
+            className="flex items-center justify-between gap-4 p-2 border border-sky-200 rounded-lg hover:bg-sky-50 transition-colors duration-200 cursor-move"
+            onDragStart={(e) => onDragStart(e, "clocknode")}
+            draggable
+          >
+            <div className="bg-sky-500 p-2 rounded-lg shadow-sm">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-sky-700 text-base font-medium">Clock (1s)</span>
           </div>
         </div>
       )}

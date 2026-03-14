@@ -7,6 +7,8 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 
+import { getInputValue } from "./utils";
+
 export default function BitDisplay({ id, data }) {
   const { updateNodeData } = useReactFlow();
   const redConnections = useNodeConnections({
@@ -16,7 +18,7 @@ export default function BitDisplay({ id, data }) {
 
   const redNodeData = useNodesData(redConnections?.[0]?.source);
 
-  const value = redNodeData?.data?.value ?? 0;
+  const value = getInputValue(redConnections, redNodeData);
 
   useEffect(() => {
     updateNodeData(id, (node) => ({

@@ -3,6 +3,7 @@ import { useDnD } from './DnDContext';
 
 import Input from '../Components/Input';
 import Gates from '../Components/Gates';
+import Flipflops from '../Components/Flipflops';
 import Output from '../Components/Output';
 export default () => {
   const [_, setType] = useDnD();
@@ -13,11 +14,12 @@ export default () => {
   };
 
   return (
-<aside className="w-[220px] h-screen overflow-y-auto scrollbar-hide">
-  <Input />
-  <Gates />
-  <Output />
-</aside>
+    <aside className="w-[220px] h-screen overflow-y-auto scrollbar-hide">
+      <Input />
+      <Gates />
+      <Flipflops />
+      <Output />
+    </aside>
 
   );
 };

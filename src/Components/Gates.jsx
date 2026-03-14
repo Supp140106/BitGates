@@ -15,7 +15,15 @@ export default function Gates() {
 
   const onDragStart = (event, nodeType) => {
     setType(nodeType);
+    event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = "move";
+
+    // Set drag image to the target element itself (the icon/shape)
+    // if the target has an image, we can use that.
+    const img = event.currentTarget.querySelector('img') || event.currentTarget.querySelector('div');
+    if (img) {
+      event.dataTransfer.setDragImage(img, 15, 15);
+    }
   };
 
   return (
@@ -26,9 +34,8 @@ export default function Gates() {
       >
         <span className="text-lg font-semibold">Logic Gates</span>
         <ChevronDown
-          className={`w-5 h-5 transform transition-transform duration-300 ${
-            open ? "rotate-180" : "rotate-0"
-          }`}
+          className={`w-5 h-5 transform transition-transform duration-300 ${open ? "rotate-180" : "rotate-0"
+            }`}
         />
       </div>
 
@@ -95,11 +102,51 @@ export default function Gates() {
 
           <div
             className="flex items-center justify-start gap-3 p-2 border border-amber-500 rounded bg-white hover:bg-gray-100 cursor-move"
-            onDragStart={(e) => onDragStart(e, "xorgate")}
+            onDragStart={(e) => onDragStart(e, "xnorgate")}
             draggable
           >
-            <img src={XNORGate} className="h-7 w-7" alt="XOR Gate" />
+            <img src={XNORGate} className="h-7 w-7" alt="XNOR Gate" />
             <span className="text-sm font-medium text-gray-800">XNOR Gate</span>
+          </div>
+
+          {/* MUX 2:1 */}
+          <div
+            className="flex items-center justify-start gap-3 p-2 border border-amber-500 rounded bg-white hover:bg-gray-100 cursor-move"
+            onDragStart={(e) => onDragStart(e, "mux21gate")}
+            draggable
+          >
+            <div className="h-6 w-6 bg-purple-200 border border-purple-500 flex items-center justify-center font-bold text-[8px] text-purple-700">MUX</div>
+            <span className="text-sm font-medium text-gray-800">MUX 2:1</span>
+          </div>
+
+          {/* MUX 4:1 */}
+          <div
+            className="flex items-center justify-start gap-3 p-2 border border-amber-500 rounded bg-white hover:bg-gray-100 cursor-move"
+            onDragStart={(e) => onDragStart(e, "mux41gate")}
+            draggable
+          >
+            <div className="h-6 w-6 bg-purple-200 border border-purple-500 flex items-center justify-center font-bold text-[8px] text-purple-700">MUX</div>
+            <span className="text-sm font-medium text-gray-800">MUX 4:1</span>
+          </div>
+
+          {/* DEC 1:2 */}
+          <div
+            className="flex items-center justify-start gap-3 p-2 border border-amber-500 rounded bg-white hover:bg-gray-100 cursor-move"
+            onDragStart={(e) => onDragStart(e, "dec12gate")}
+            draggable
+          >
+            <div className="h-6 w-6 bg-blue-200 border border-blue-500 flex items-center justify-center font-bold text-[8px] text-blue-700">DEC</div>
+            <span className="text-sm font-medium text-gray-800">DEC 1:2</span>
+          </div>
+
+          {/* DEC 2:4 */}
+          <div
+            className="flex items-center justify-start gap-3 p-2 border border-amber-500 rounded bg-white hover:bg-gray-100 cursor-move"
+            onDragStart={(e) => onDragStart(e, "dec24gate")}
+            draggable
+          >
+            <div className="h-6 w-6 bg-blue-200 border border-blue-500 flex items-center justify-center font-bold text-[8px] text-blue-700">DEC</div>
+            <span className="text-sm font-medium text-gray-800">DEC 2:4</span>
           </div>
         </div>
       )}

@@ -1,11 +1,13 @@
 import { useEffect, useCallback } from 'react';
 import {
+
   Handle,
   useNodeConnections,
   useNodesData,
   Position,
   useReactFlow,
 } from '@xyflow/react';
+import { getInputValue } from './utils';
 
 import orgate from '../assets/images/or.png'; // make sure this path is correct
 
@@ -27,8 +29,8 @@ export default function ORGate({ id, data }) {
   const rNodeData = useNodesData(r?.[0]?.source);
 
   // Compute OR logic output
-  const inputL = lNodeData?.data?.value ?? 0;
-  const inputR = rNodeData?.data?.value ?? 0;
+  const inputL = getInputValue(l, lNodeData);
+  const inputR = getInputValue(r, rNodeData);
   const result = inputL || inputR;
 
   // 🔁 Update node data with computed output

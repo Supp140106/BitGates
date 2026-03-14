@@ -8,7 +8,13 @@ export default function Output() {
 
   const onDragStart = (event, nodeType) => {
     setType(nodeType);
+    event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = "move";
+
+    const dragImg = event.currentTarget.querySelector('div.w-4');
+    if (dragImg) {
+      event.dataTransfer.setDragImage(dragImg, 8, 8);
+    }
   };
 
   return (
@@ -19,9 +25,8 @@ export default function Output() {
       >
         <span className="text-lg font-semibold">Output</span>
         <ChevronDown
-          className={`w-5 h-5 transform transition-transform duration-300 ${
-            open ? "rotate-180" : "rotate-0"
-          }`}
+          className={`w-5 h-5 transform transition-transform duration-300 ${open ? "rotate-180" : "rotate-0"
+            }`}
         />
       </div>
 
